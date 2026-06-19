@@ -37,12 +37,24 @@ in the dashboard.
 
 ## Deploy
 
+Production is a single Worker (`agentclip-production`) that also serves the built
+dashboard, deployed via `wrangler deploy --env production` (wrapped by `make deploy`).
+
 ```sh
-pnpm --filter @agentclip/api exec wrangler d1 execute agentclip --remote --file=./schema.sql
-pnpm --filter @agentclip/api exec wrangler secret put GOOGLE_CLIENT_ID    # + SECRET, SESSION_SECRET
-make deploy
+# one-time: create the Vectorize index + remote schema, set secrets
+pnpm --filter @agentclip/api exec wrangler vectorize create agentclip-snippets --dimensions=1024 --metric=cosine
+pnpm --filter @agentclip/api exec wrangler vectorize create-metadata-index agentclip-snippets --property-name=user_id --type=number
+pnpm --filter @agentclip/api db:init:remote
+pnpm --filter @agentclip/api exec wrangler secret put GOOGLE_CLIENT_ID --env production  # + SECRET, SESSION_SECRET, ENCRYPTION_KEY
+make deploy   # builds the dashboard, then deploys the Worker (API + MCP + OAuth + dashboard)
 ```
 
-Update `APP_BASE_URL` / `DASHBOARD_ORIGIN` vars (and the Google redirect URI) to the
-deployed origins. Deploy the dashboard to Cloudflare Pages and publish the extension
-separately.
+The `[env.production]` block in `wrangler.toml` binds D1, Vectorize, Workers AI, static
+assets, and the `agentclip.0xkaz.com` custom domain. Keep the Google redirect URI in sync
+with `APP_BASE_URL`.
+
+## E2E
+
+`make e2e` (env `AGENTCLIP_TOKEN`, optional `AGENTCLIP_BASE`) runs an end-to-end smoke test
+against a running instance: create → keyword search → encryption excluded → update → MCP
+tools → delete.

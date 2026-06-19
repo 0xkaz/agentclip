@@ -40,7 +40,7 @@ The dashboard has three pages:
 
 | Page | What it does |
 |------|--------------|
-| **Snippets** | Browse & full-text-search everything you've clipped |
+| **Snippets** | Browse, add/edit/delete, keyword & semantic search your clips |
 | **API Tokens** | Create / revoke per-user Bearer tokens |
 | **Setup & Usage** | Copy-paste MCP config, REST `curl`, and extension setup |
 

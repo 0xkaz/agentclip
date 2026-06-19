@@ -10,7 +10,7 @@ per-user-token-authenticated REST API and MCP server.
 ## Stack
 
 - TypeScript + Hono on Cloudflare Workers (REST + MCP + Google OAuth, one Worker)
-- Cloudflare D1 (SQLite) with FTS5 full-text search
+- Cloudflare D1 (SQLite); keyword search via LIKE, semantic search via Workers AI + Vectorize
 - React + Vite dashboard (Google login, snippet & token management)
 - Chrome extension (Manifest V3)
 - pnpm workspace monorepo
@@ -27,9 +27,10 @@ per-user-token-authenticated REST API and MCP server.
 - `make install` — install all workspace deps
 - `make dev` — run the API worker locally (`wrangler dev`)
 - `make test` — run Vitest
+- `make e2e` — end-to-end smoke test against a running instance (needs `AGENTCLIP_TOKEN`)
 - `make lint` / `make typecheck` — checks
 - `make build` — build web + extension
-- `make deploy` — deploy the API worker
+- `make deploy` — build dashboard + deploy the Worker (`--env production`)
 
 ## Auth model
 
