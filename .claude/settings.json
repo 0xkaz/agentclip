@@ -1,0 +1,9 @@
+{
+  "project": {
+    "name": "agentclip",
+    "language": "typescript",
+    "framework": "hono",
+    "platform": "cloudflare-workers",
+    "monorepo": "pnpm"
+  }
+}

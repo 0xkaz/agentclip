@@ -1,0 +1,56 @@
+name = "agentclip"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# ─────────────────────────────────────────────────────────────
+# Local dev defaults (`wrangler dev`). Dashboard runs separately
+# on Vite :5173 with hot reload, so no assets are served here.
+# ─────────────────────────────────────────────────────────────
+[vars]
+APP_BASE_URL = "http://localhost:8787"
+DASHBOARD_ORIGIN = "http://localhost:5173"
+
+# D1 database binding. Create with `wrangler d1 create agentclip`
+# then paste the returned database_id below (same id in [env.production]).
+[[d1_databases]]
+binding = "DB"
+database_name = "agentclip"
+database_id = "465f965b-9cd7-4a1a-8647-de9236b2ed1a"
+
+# ─────────────────────────────────────────────────────────────
+# Production (`wrangler deploy --env production`).
+# Single origin: this Worker serves API + MCP + OAuth AND the
+# built dashboard (apps/web/dist) at agentclip.0xkaz.com.
+# ─────────────────────────────────────────────────────────────
+[env.production]
+routes = [{ pattern = "agentclip.0xkaz.com", custom_domain = true }]
+
+[env.production.vars]
+APP_BASE_URL = "https://agentclip.0xkaz.com"
+DASHBOARD_ORIGIN = "https://agentclip.0xkaz.com"
+
+# Static assets = the built React dashboard. Files that exist are served
+# directly by the edge; everything else falls through to the Worker.
+[env.production.assets]
+directory = "../web/dist"
+binding = "ASSETS"
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "agentclip"
+database_id = "465f965b-9cd7-4a1a-8647-de9236b2ed1a"
+
+# Workers AI (embeddings) + Vectorize (semantic search).
+[env.production.ai]
+binding = "AI"
+
+[[env.production.vectorize]]
+binding = "VECTORIZE"
+index_name = "agentclip-snippets"
+
+# Secrets (set via `wrangler secret put <NAME> --env production` or .dev.vars locally):
+#   GOOGLE_CLIENT_ID
+#   GOOGLE_CLIENT_SECRET
+#   SESSION_SECRET    (random 32+ byte string for HMAC cookie signing)
+#   ENCRYPTION_KEY    (random 32+ byte string for per-clip encryption)

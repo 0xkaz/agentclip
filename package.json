@@ -1,0 +1,15 @@
+{
+  "name": "agentclip",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Personal text-clipping store with Chrome extension capture and MCP/API retrieval, on Cloudflare.",
+  "packageManager": "pnpm@9.12.0",
+  "scripts": {
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}

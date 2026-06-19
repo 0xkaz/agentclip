@@ -1,0 +1,9 @@
+# agentclip — Cursor rules
+
+See AGENTS.md for the authoritative project guide.
+
+- TypeScript-first. Cloudflare Workers + Hono for the API. React + Vite for the dashboard.
+- Keep API, MCP, and OAuth in a single Worker (apps/api).
+- Never commit secrets; use `.dev.vars` locally and `wrangler secret put` in prod.
+- All data access must be scoped by user_id. Tokens are stored as SHA-256 hashes only.
+- Prefer the Web Crypto API (no extra crypto deps) inside the Worker.
