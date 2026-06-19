@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
-import { Scissors, Database, Bot, MousePointerClick, ArrowRight, Github } from "lucide-react";
-import { loginUrl } from "../api";
+import { Scissors, Database, Bot, MousePointerClick, ArrowRight, Github, Terminal } from "lucide-react";
+import { loginUrl, PUBLIC_BASE } from "../api";
+import { CodeBlock } from "../components/ui";
 
 const REPO_URL = "https://github.com/0xkaz/agentclip";
 
@@ -20,7 +21,7 @@ const features = [
   {
     icon: Database,
     title: "Stored on Cloudflare",
-    body: "Your clips live in your own per-user store with full-text search — fast and private.",
+    body: "Your clips live in your own per-user store with keyword and semantic search — fast and private.",
   },
   {
     icon: Bot,
@@ -35,7 +36,68 @@ const steps = [
   { n: "3", t: "Connect your agent", d: "Add your token to an MCP client or call the API." },
 ];
 
+// REST endpoints (Bearer token). Share links are created from the dashboard
+// (session) and read publicly at /s/:slug.
+const restEndpoints: [string, string, string][] = [
+  ["POST", "/api/snippets", "Create a clip — content, title?, source_url?, tags?, encrypted?"],
+  ["GET", "/api/snippets?q=&mode=&limit=", "List, or keyword / semantic search (mode=semantic)"],
+  ["GET", "/api/snippets/:id", "Fetch one clip"],
+  ["PATCH", "/api/snippets/:id", "Update content / title / tags / encrypted"],
+  ["DELETE", "/api/snippets/:id", "Delete a clip"],
+  ["POST", "/api/snippets/reindex", "Rebuild the semantic index for existing clips"],
+];
+
+const mcpTools: [string, string][] = [
+  ["store_snippet", "Save a clip (supports encrypted)"],
+  ["search_snippets", "Keyword (substring) search"],
+  ["semantic_search", "Meaning-based search"],
+  ["get_snippet", "Fetch one clip by id"],
+  ["list_recent", "List the newest clips"],
+  ["update_snippet", "Update a clip"],
+  ["delete_snippet", "Delete a clip"],
+];
+
 export function Landing() {
+  const base = PUBLIC_BASE;
+  const mcpConfig = JSON.stringify(
+    {
+      mcpServers: {
+        agentclip: {
+          type: "http",
+          url: `${base}/mcp`,
+          headers: { Authorization: "Bearer ac_live_YOUR_TOKEN" },
+        },
+      },
+    },
+    null,
+    2,
+  );
+  const restExample = `B=${base}
+H='Authorization: Bearer ac_live_YOUR_TOKEN'
+
+# create ("encrypted": true to encrypt at rest + exclude from search)
+curl -X POST $B/api/snippets -H "$H" -H 'Content-Type: application/json' \\
+  -d '{"content":"hello","title":"note","tags":"demo","encrypted":false}'
+
+# keyword search (substring; works for Japanese)
+curl "$B/api/snippets?q=hello&limit=20" -H "$H"
+
+# semantic search (meaning-based)
+curl "$B/api/snippets?q=greeting&mode=semantic" -H "$H"
+
+# get one
+curl "$B/api/snippets/123" -H "$H"
+
+# update
+curl -X PATCH $B/api/snippets/123 -H "$H" -H 'Content-Type: application/json' \\
+  -d '{"content":"updated"}'
+
+# delete
+curl -X DELETE $B/api/snippets/123 -H "$H"
+
+# rebuild the semantic index for older clips
+curl -X POST $B/api/snippets/reindex -H "$H"`;
+
   return (
     <div className="min-h-screen">
       {/* Nav */}
@@ -47,6 +109,12 @@ export function Landing() {
           <span className="text-base font-semibold tracking-tight">AgentClip</span>
         </div>
         <div className="flex items-center gap-2">
+          <a
+            href="#developers"
+            className="mr-1 hidden text-sm font-medium text-slate-600 hover:text-slate-900 sm:inline"
+          >
+            API &amp; MCP
+          </a>
           <a
             href={REPO_URL}
             target="_blank"
@@ -143,6 +211,106 @@ export function Landing() {
           >
             Get started free <ArrowRight size={16} />
           </a>
+        </div>
+      </section>
+
+      {/* For developers — API & MCP (visible without signing in) */}
+      <section id="developers" className="border-t border-slate-200 bg-white">
+        <div className="mx-auto max-w-5xl px-6 py-16">
+          <motion.div {...fade} className="mb-8 text-center">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
+              <Terminal size={13} /> For developers
+            </span>
+            <h2 className="mt-4 text-2xl font-semibold tracking-tight">API &amp; MCP</h2>
+            <p className="mx-auto mt-2 max-w-2xl text-sm text-slate-600">
+              Sign in and create a per-user token (dashboard → API Tokens), then read and
+              write your clips from any AI agent or tool. Replace
+              <code className="mx-1 rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs">ac_live_YOUR_TOKEN</code>
+              with your token.
+            </p>
+          </motion.div>
+
+          {/* Auth note */}
+          <motion.div {...fade} className="mb-8 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+            <b className="text-slate-800">Auth.</b> Every request uses a per-user Bearer
+            token: <code className="rounded bg-white px-1.5 py-0.5 font-mono text-xs">Authorization: Bearer ac_live_…</code>.
+            Base URL <code className="rounded bg-white px-1.5 py-0.5 font-mono text-xs">{base}</code>.
+            Every clip is scoped to your account.
+          </motion.div>
+
+          {/* REST */}
+          <motion.div {...fade} className="mb-10">
+            <div className="mb-3 flex items-center gap-2 text-base font-semibold text-slate-900">
+              <Terminal size={18} className="text-indigo-600" /> REST API
+            </div>
+            <div className="mb-4 overflow-hidden rounded-xl border border-slate-200">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                  <tr>
+                    <th className="px-4 py-2 font-medium">Method</th>
+                    <th className="px-4 py-2 font-medium">Path</th>
+                    <th className="hidden px-4 py-2 font-medium sm:table-cell">Description</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {restEndpoints.map(([m, p, d]) => (
+                    <tr key={m + p}>
+                      <td className="px-4 py-2.5">
+                        <span className="rounded bg-indigo-50 px-2 py-0.5 font-mono text-xs font-semibold text-indigo-700">{m}</span>
+                      </td>
+                      <td className="px-4 py-2.5 font-mono text-xs text-slate-800">{p}</td>
+                      <td className="hidden px-4 py-2.5 text-xs text-slate-500 sm:table-cell">{d}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <CodeBlock label="curl — full reference" code={restExample} />
+            <p className="mt-2 text-xs text-slate-500">
+              Share links are created from the dashboard and read publicly at
+              <code className="mx-1 rounded bg-slate-100 px-1.5 py-0.5 font-mono">{base}/s/&lt;slug&gt;</code>.
+            </p>
+          </motion.div>
+
+          {/* MCP */}
+          <motion.div {...fade}>
+            <div className="mb-3 flex items-center gap-2 text-base font-semibold text-slate-900">
+              <Bot size={18} className="text-indigo-600" /> MCP server
+            </div>
+            <p className="mb-4 text-sm text-slate-600">
+              Point any MCP client at <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs">{base}/mcp</code> (Streamable HTTP).
+            </p>
+            <div className="grid gap-5 md:grid-cols-2">
+              <div className="overflow-hidden rounded-xl border border-slate-200">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                    <tr>
+                      <th className="px-4 py-2 font-medium">Tool</th>
+                      <th className="px-4 py-2 font-medium">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {mcpTools.map(([n, d]) => (
+                      <tr key={n}>
+                        <td className="px-4 py-2.5 font-mono text-xs text-slate-800">{n}</td>
+                        <td className="px-4 py-2.5 text-xs text-slate-500">{d}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <CodeBlock label="MCP client config" code={mcpConfig} />
+            </div>
+          </motion.div>
+
+          <div className="mt-10 text-center">
+            <a
+              href={loginUrl}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              Sign in to get a token <ArrowRight size={16} />
+            </a>
+          </div>
         </div>
       </section>
 
