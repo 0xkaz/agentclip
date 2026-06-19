@@ -13,3 +13,5 @@ coverage/
 apps/extension/dist/
 apps/extension/*.zip
 apps/web/dist/
+
+_*.md
