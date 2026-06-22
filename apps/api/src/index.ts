@@ -1,11 +1,12 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { deleteCookie } from "hono/cookie";
 import type { Env, Vars } from "./types";
 import { auth } from "./auth";
 import { snippets } from "./snippets";
 import { tokens } from "./tokens";
 import { mcp } from "./mcp";
-import { requireSession } from "./middleware";
+import { requireSession, requireBearer, SESSION_COOKIE } from "./middleware";
 import {
   listRecent,
   searchSnippets,
@@ -16,6 +17,7 @@ import {
   createShare,
   revokeShare,
   getSharedSnippet,
+  deleteUser,
 } from "./db";
 import { semanticSearch, reindexUser } from "./vectors";
 import type { CreateSnippetInput, ShareResult } from "@agentclip/shared";
@@ -68,7 +70,29 @@ app.get("/api/me", requireSession, async (c) => {
   )
     .bind(c.get("userId"))
     .first();
+  // The session can outlive the user (e.g. after account deletion). Treat a
+  // missing user as logged-out and clear the stale cookie so the dashboard
+  // shows the landing page instead of crashing on a null user.
+  if (!row) {
+    deleteCookie(c, SESSION_COOKIE, { path: "/" });
+    return c.json({ error: "not authenticated" }, 401);
+  }
   return c.json(row);
+});
+
+// Account deletion (Bearer auth, for the mobile app). Permanently removes the
+// authenticated user and all their data — required by the App Store / Play.
+app.delete("/api/me", requireBearer, async (c) => {
+  await deleteUser(c.env, c.get("userId"));
+  return c.json({ ok: true });
+});
+
+// Account deletion (session auth, for the web dashboard). Same effect, and
+// clears the session cookie so the browser is logged out immediately.
+app.delete("/api/my/account", requireSession, async (c) => {
+  await deleteUser(c.env, c.get("userId"));
+  deleteCookie(c, SESSION_COOKIE, { path: "/" });
+  return c.json({ ok: true });
 });
 
 // Dashboard-scoped snippet CRUD (session auth). The dashboard never needs a token.

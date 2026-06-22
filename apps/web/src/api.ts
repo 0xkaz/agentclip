@@ -52,4 +52,6 @@ export const api = {
   deleteMySnippet: (id: number) =>
     req<{ ok: boolean }>(`/api/my/snippets/${id}`, { method: "DELETE" }),
   logout: () => req<{ ok: boolean }>("/auth/logout", { method: "POST" }),
+  // Permanently delete the account and all its data (clips, tokens, shares).
+  deleteAccount: () => req<{ ok: boolean }>("/api/my/account", { method: "DELETE" }),
 };

@@ -47,6 +47,19 @@ export async function upsertUser(
   return row;
 }
 
+// Permanently delete a user and all their data. D1 foreign keys cascade to
+// api_tokens, snippets and shares; Vectorize entries are not covered by the
+// cascade, so we remove the user's vectors explicitly first.
+export async function deleteUser(env: Env, userId: number): Promise<void> {
+  const res = await env.DB.prepare(`SELECT id FROM snippets WHERE user_id = ?`)
+    .bind(userId)
+    .all<{ id: number }>();
+  for (const r of res.results ?? []) {
+    await removeFromIndex(env, r.id);
+  }
+  await env.DB.prepare(`DELETE FROM users WHERE id = ?`).bind(userId).run();
+}
+
 // Returns userId for a valid, non-revoked token, else null. Updates last_used_at.
 export async function userIdForToken(
   db: D1Database,

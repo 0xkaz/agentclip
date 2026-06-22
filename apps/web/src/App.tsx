@@ -16,7 +16,7 @@ export function App() {
   useEffect(() => {
     api
       .me()
-      .then((me) => setAuth({ state: "in", me }))
+      .then((me) => setAuth(me && me.email ? { state: "in", me } : { state: "out" }))
       .catch(() => setAuth({ state: "out" }));
   }, []);
 

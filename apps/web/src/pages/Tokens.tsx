@@ -9,6 +9,23 @@ export function Tokens() {
   const [name, setName] = useState("");
   const [created, setCreated] = useState<CreatedToken | null>(null);
   const [busy, setBusy] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function deleteAccount() {
+    const ok = window.confirm(
+      "Permanently delete your AgentClip account and ALL of your clips, tags and tokens? This cannot be undone.",
+    );
+    if (!ok) return;
+    setDeleting(true);
+    try {
+      await api.deleteAccount();
+      // The session now points at a deleted user; send them to the landing page.
+      window.location.assign("/");
+    } catch (e) {
+      setDeleting(false);
+      window.alert(`Could not delete account: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
 
   async function load() {
     setTokens(await api.listTokens().then((r) => r.tokens));
@@ -101,6 +118,22 @@ export function Tokens() {
             ))}
           </ul>
         )}
+      </Card>
+
+      {/* Danger zone */}
+      <Card className="mt-8 border-red-200 p-5">
+        <div className="flex items-center gap-2 text-sm font-semibold text-red-700">
+          <TriangleAlert size={16} /> Danger zone
+        </div>
+        <p className="mt-2 text-sm text-slate-600">
+          Permanently delete your account and all server-side data — clips, tags, API tokens and
+          share links. This cannot be undone.
+        </p>
+        <div className="mt-3">
+          <Button variant="danger" size="sm" onClick={deleteAccount} disabled={deleting}>
+            <Trash2 size={14} /> Delete account
+          </Button>
+        </div>
       </Card>
     </div>
   );

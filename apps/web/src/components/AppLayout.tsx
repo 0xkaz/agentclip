@@ -25,11 +25,21 @@ export function AppLayout({ email, children }: { email: string; children: ReactN
     <div className="min-h-screen md:grid md:grid-cols-[240px_1fr]">
       {/* Sidebar */}
       <aside className="flex flex-col border-r border-slate-200 bg-white md:h-screen md:sticky md:top-0">
-        <div className="flex items-center gap-2 px-5 py-4">
-          <span className="grid h-8 w-8 place-items-center rounded-lg bg-indigo-600 text-white">
-            <Scissors size={16} />
-          </span>
-          <span className="text-base font-semibold tracking-tight">AgentClip</span>
+        <div className="flex items-center justify-between px-5 py-4">
+          <div className="flex items-center gap-2">
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-indigo-600 text-white">
+              <Scissors size={16} />
+            </span>
+            <span className="text-base font-semibold tracking-tight">AgentClip</span>
+          </div>
+          {/* Sign out is in the sidebar footer on desktop; surface it here on mobile. */}
+          <button
+            onClick={logout}
+            aria-label="Sign out"
+            className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-slate-600 hover:bg-slate-100 md:hidden"
+          >
+            <LogOut size={16} /> Sign out
+          </button>
         </div>
         <nav className="flex gap-1 px-3 md:flex-col md:gap-1">
           {nav.map(({ to, label, icon: Icon }) => (
