@@ -255,7 +255,8 @@ export function Snippets() {
                       <Lock size={11} className="mr-1" /> encrypted · not searchable
                     </Badge>
                   )}
-                  {s.tags && s.tags.split(",").filter(Boolean).map((t) => <Badge key={t}>{t.trim()}</Badge>)}
+                  {typeof s.tags === "string" &&
+                    s.tags.split(",").filter(Boolean).map((t) => <Badge key={t}>{t.trim()}</Badge>)}
                   <span>{s.created_at}</span>
                   {s.source_url && (
                     <a href={s.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-indigo-600 hover:underline">

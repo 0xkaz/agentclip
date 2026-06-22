@@ -12,7 +12,7 @@ db-init:
 # Build the dashboard, then deploy the Worker (which serves API + MCP + dashboard).
 deploy:
 	pnpm --filter @agentclip/web build
-	pnpm --filter @agentclip/api deploy
+	pnpm --filter @agentclip/api run deploy
 
 build:
 	pnpm --filter @agentclip/web build

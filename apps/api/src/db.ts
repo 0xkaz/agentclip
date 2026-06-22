@@ -3,6 +3,15 @@ import type { Env } from "./types";
 import { sha256Hex, encryptContent, decryptContent, randomSlug } from "./crypto";
 import { indexSnippet, removeFromIndex } from "./vectors";
 
+// Coerce a tags value to TEXT-or-NULL before binding. Clients (REST/MCP) may send
+// non-strings (e.g. an empty array `[]`); binding those to D1 stores a BLOB, which
+// serializes back to the dashboard as a JS array and breaks `tags.split(",")`.
+function normTags(tags: unknown): string | null {
+  if (tags == null) return null;
+  const s = Array.isArray(tags) ? tags.join(",") : typeof tags === "string" ? tags : String(tags);
+  return s.trim() ? s : null;
+}
+
 // Active-share subquery: the slug of a live (non-revoked, non-expired) share, or null.
 const SHARE_SLUG = (ref: string) =>
   `(SELECT slug FROM shares WHERE shares.snippet_id = ${ref}.id AND revoked_at IS NULL
@@ -111,7 +120,7 @@ export async function insertSnippet(
       `INSERT INTO snippets (user_id, content, title, source_url, tags, encrypted)
        VALUES (?, ?, ?, ?, ?, ?)`,
     )
-    .bind(userId, stored, title, source_url, tags, encrypted ? 1 : 0)
+    .bind(userId, stored, title, source_url, normTags(tags), encrypted ? 1 : 0)
     .run();
   const id = res.meta.last_row_id as number;
   const row = (await decode(
@@ -185,7 +194,7 @@ export async function updateSnippet(
       `UPDATE snippets SET content = ?, title = ?, tags = ?, encrypted = ?, updated_at = datetime('now')
        WHERE id = ? AND user_id = ?`,
     )
-    .bind(stored, title, tags, encrypted ? 1 : 0, id, userId)
+    .bind(stored, title, normTags(tags), encrypted ? 1 : 0, id, userId)
     .run();
   const row = await getSnippet(env, userId, id);
   if (row) await indexSnippet(env, row);
