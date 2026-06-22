@@ -4,6 +4,9 @@ export interface Env {
   DASHBOARD_ORIGIN: string;
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
+  // Optional comma-separated extra OAuth client ids accepted as the `aud` of a
+  // native mobile Google ID token (e.g. platform-specific iOS/Android ids).
+  GOOGLE_NATIVE_CLIENT_IDS?: string;
   SESSION_SECRET: string;
   // Key for field-level encryption of clips marked "encrypted".
   ENCRYPTION_KEY: string;

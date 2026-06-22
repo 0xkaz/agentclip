@@ -1,9 +1,10 @@
 import { Hono } from "hono";
 import { setCookie } from "hono/cookie";
 import type { Env, Vars } from "./types";
-import { upsertUser } from "./db";
-import { signSession } from "./crypto";
+import { upsertUser, createToken } from "./db";
+import { signSession, randomToken, sha256Hex } from "./crypto";
 import { SESSION_COOKIE } from "./middleware";
+import { verifyGoogleIdToken } from "./google";
 
 export const auth = new Hono<{ Bindings: Env; Variables: Vars }>();
 
@@ -65,6 +66,38 @@ auth.get("/google/callback", async (c) => {
   });
 
   return c.redirect(c.env.DASHBOARD_ORIGIN);
+});
+
+// Native mobile sign-in: the app performs Google Sign-In on-device and POSTs
+// the resulting ID token here. We verify it ourselves (google.ts) and mint an
+// opaque `ac_live_...` Bearer token — the same kind the dashboard issues — so
+// the app can call the REST API. The plain token is returned once.
+auth.post("/google/native", async (c) => {
+  const body = await c.req.json<{ idToken?: string }>().catch(() => null);
+  const idToken = body?.idToken?.trim();
+  if (!idToken) return c.json({ error: "idToken required" }, 400);
+
+  // The ID token's audience is the OAuth client id the app signed in with
+  // (typically the Web client id passed to the native SDK). Accept the
+  // dashboard client id plus any extra native client ids from config.
+  const audiences = [c.env.GOOGLE_CLIENT_ID, ...(c.env.GOOGLE_NATIVE_CLIENT_IDS ?? "").split(",")]
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  let claims;
+  try {
+    claims = await verifyGoogleIdToken(idToken, audiences);
+  } catch {
+    return c.json({ error: "invalid Google token" }, 401);
+  }
+  if (!(claims.email_verified === true || claims.email_verified === "true")) {
+    return c.json({ error: "email not verified" }, 403);
+  }
+
+  const user = await upsertUser(c.env.DB, claims.sub, claims.email, claims.name ?? null);
+  const plain = randomToken();
+  await createToken(c.env.DB, user.id, "mobile", await sha256Hex(plain));
+  return c.json({ token: plain, tokenType: "Bearer" }, 201);
 });
 
 auth.post("/logout", (c) => {
